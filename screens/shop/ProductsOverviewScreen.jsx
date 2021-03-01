@@ -1,18 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { FlatList, Button, Platform } from 'react-native';
+import {
+	Text,
+	View, 
+	FlatList,
+	Button,
+	Platform,
+	ActivityIndicator,
+	StyleSheet
+} from 'react-native';
 import { HeaderButtons, Item } from 'react-navigation-header-buttons';
 
 import ProductItem from '../../components/shop/ProductItem';
 import * as cartActions from '../../store/actions/cartActions';
+import * as productsActions from '../../store/actions/productsActions';
+
 import HeaderButton from '../../components/UI/HeaderButton';
 
 import Colors from '../../constants/Colors';
 
 
 const ProductsOverviewScreen = props => {
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState();
 	const products = useSelector(state => state.products.availableProducts);
 	const dispatch = useDispatch();
+
+	useEffect(() => {
+		const loadProducts = async () => {
+			setIsLoading(true);
+			try {
+				await dispatch(productsActions.fetchProducts());
+			} catch (err) {
+				setError(err.message);
+			}
+			setIsLoading(false);
+		}
+		loadProducts();
+	}, [dispatch]);
 
 	const selectItemHandler = (id, title) => {
 		props.navigation.navigate(
@@ -22,7 +47,33 @@ const ProductsOverviewScreen = props => {
 				productTitle: title
 			}
 		);
-	}
+	};
+
+	if (error) {
+		return 
+			<View style={styles.centered}>
+				<Text style={styles.noProducts}>An error occured</Text>
+			</View>
+	};
+
+	if (isLoading) {
+		return (
+			<View style={styles.centered}>
+				<ActivityIndicator
+					size='large'
+					color={Colors.primary}
+				/>
+			</View>
+		);
+	};
+
+	if (!isLoading && products.length === 0) {
+		return (
+			<View style={styles.centered}>
+				<Text style={styles.noProducts}>No products found. Add some products!</Text>
+			</View>
+		);
+	};
 
 	return <FlatList
 		data={products}
@@ -94,4 +145,20 @@ ProductsOverviewScreen.navigationOptions = navData => {
 	})
 };
 
+const styles = StyleSheet.create({
+	centered: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center'
+	},
+	noProducts: {
+		fontFamily: 'open-sans-bold',
+		color: Colors.primary
+	}
+});
+
+
 export default ProductsOverviewScreen;
+
+
+
